@@ -41,7 +41,7 @@ class load_data():
     def read_data(self):
         read_mass16 = True
         read_rct1 = True
-        read_rct2 = False
+        read_rct2 = True
 
         strip_of_invalid_values = True
         drop_nan = True
@@ -103,7 +103,7 @@ class load_data():
             # Find the rows of the grouped DataFrame with the maximum binding energy.
             #Rct1 = Rct1.apply(lambda t: t[t.Ebinding==t.Ebinding.max()])
             
-            print(Rct1)
+            #print(Rct1)
 
 
         if read_rct2:
@@ -165,11 +165,15 @@ class load_data():
         if drop_nan:    
             data = data.dropna()
         
-        
-        
+
+
+        print("********************* Test for Re:  *******************************")
+        print(data[data['Element'] == 'Re'])
+
+        print(" All: ")
         print(data)
 
-        print(data[data['Element'] == 'Re'])
+
         self.data = data
         print("Data loaded succsessfully. Well done :)")
 

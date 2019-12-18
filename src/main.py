@@ -18,4 +18,4 @@ nuclear_data = load_data()
 nuclear_data.make_dir()
 nuclear_data.read_data()
 
-print(nuclear_data.data)
+#print(nuclear_data.data)
