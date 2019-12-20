@@ -42,6 +42,7 @@ class load_data():
         read_mass16 = True
         read_rct1 = True
         read_rct2 = True
+        betarates = True
 
         strip_of_invalid_values = True
         drop_nan = True
@@ -109,8 +110,8 @@ class load_data():
         if read_rct2:
             infile_rct2 = open("../input/rct2_16.txt",'r')
 
-            Rct2 = pd.read_fwf(infile_rct2, usecols=(4,6,8,10,12,14),
-                names=('S(n)', 'S(p)', 'Q(4B-)', 'Q(d,a)', 'Q(p,a)', 'Q(n,a)'),
+            Rct2 = pd.read_fwf(infile_rct2, usecols=(1,3,4,6,8,10,12,14),
+                names=('A', 'Z', 'S(n)', 'S(p)', 'Q(4B-)', 'Q(d,a)', 'Q(p,a)', 'Q(n,a)'),
                 widths=(1,3,3,4,11,8,10,8,10,8,10,8,10,8,10,8),
                 header=39,
                 index_col=False)
@@ -119,10 +120,26 @@ class load_data():
         """data = pd.merge(Masses,
                  Rct1[['S(2n)' 'S(2n)', 'S(2p)', 'Q(a)', 'Q(2B-)', 'Q(B-)']],
                  on='use_id')"""
-        data = pd.concat([Masses, Rct1, Rct2], axis=1)
 
+        
+        if betarates:
+            # File format:
+            #A   Z   T9   log_10{rho(g/cm3) * Ye}   mu_e(electron chemical potential)  rates(beta+)  rate(EC) rates(nu) rates(beta-) rates(e+ capture)  rates(nubar)  tableID
+            infile_betarates = open("../input/data_too_big_for_github/for_each_nucl/20_9.txt",'r')
+
+            Betarates = pd.read_fwf(infile_betarates, usecols=(0,1,2,3,5,6,8),
+                names=('A', 'Z', 'T9', 'rho', 'beta+', 'EC', 'beta-',  ),
+                widths=(4,4,10,10,10,10,10,10),
+                header=0,
+                index_col=False)
+        #   6   3     0.100     5.000     0.052       ---  -100.000  -100.000       ---       ---       ---      0
+        #data = pd.concat([Masses, Rct1, Rct2], axis=1)
+
+        print(Betarates)
+        data = pd.merge(Masses, Rct1, on=["A", "Z"])   #, Rct1)
+        data = pd.merge(data, Rct2, on=["A", "Z"])
+        data = pd.merge(data, Betarates.loc[(Betarates['T9'] == 0.4) & (Betarates['rho']== 4.0)], on=["A", "Z"])
         #data = data.groupby('A')
-
         #print(data)
 
 
