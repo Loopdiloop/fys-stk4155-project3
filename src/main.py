@@ -15,7 +15,14 @@ from load_nuclear_data import load_data
 
 
 nuclear_data = load_data()
-nuclear_data.make_dir()
-nuclear_data.read_data()
+#nuclear_data.make_dir()
+#nuclear_data.read_data()
+
+'''plt.plot(nuclear_data.data['A'], nuclear_data.data['Q(a)'], '*')
+plt.show()
+'''
+
+nuclear_data.scrape_internet()
+
 
 #print(nuclear_data.data)
