@@ -165,6 +165,8 @@ class load_data():
 
     def scrape_internet(self):
         n = 8000
+        # Z, N, lifetime value in log(sec) OR if stable == 20.0
+        stable = 20.0
         matrix_lifetimes = np.empty((n,3))
 
         index = 0
@@ -198,7 +200,8 @@ class load_data():
                     print('LIFETIME CLEAN ?? ', lifetime)
                     lifetime_list = list(lifetime)
                     if 'stable' in lifetime:
-                        lifetime = 1.0
+                        matrix_lifetimes[index] = np.array([Z, N, stable])
+                        index += 1
                     else:
                         try:
                             unit = re.findall("[a-zA-Z]+", lifetime_list[-2] + lifetime_list[-1]) # Extract unit of lifetime. y/m/s/ms ...etc
@@ -209,8 +212,12 @@ class load_data():
                             print(lifetime, unit)
                             print(self.units[unit[0]]) #Find corresponding log in seconds.
                             print(lifetime)
+                            matrix_lifetimes[index] = np.array([Z, N, lifetime_log])
+                            index += 1
+
                         except:
                             print(lifetime, 'is not a valid or excisting lifetime/number')
+                    
                     # After </A></TH> : Z, N
                     # <TH ><A HREF=nuclide.asp?iZA=740158><SUP>158</SUP>W</A></TH>
                     #Z = 34
@@ -219,8 +226,9 @@ class load_data():
 
                     # Fill matrix
 
-                    index += 1
-        df_lifetimes = pd.DataFrame(matrix_lifetimes, columns=['Z', 'N', 'lifetime'])
+                    
+        print(matrix_lifetimes[:50])            
+        #df_lifetimes = pd.DataFrame(matrix_lifetimes, columns=['Z', 'N', 'lifetime'])
 
 
 
