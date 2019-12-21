@@ -143,26 +143,6 @@ class load_data():
         print("Data loaded succsessfully. Well done :)")
 
 
-
-
-
-
-
-    def scrape_thread(cleanthread):		# We need to feed the thread data into the function
-        singlethreadlinksearch = re.compile(r'\<a class="storylink" href="(.+?)"\>')		
-        singlethreadlink = singlethreadlinksearch.findall(str(cleanthread))
-        commenterIDsearch = re.compile(r'user\?id=(.+?)"')
-        commenterIDs = commenterIDsearch.findall(str(cleanthread))
-        try:
-            firstcommenter = commenterIDs[1]		# If there are no commenters this will fail, so we wrap it in a try/except just in case
-        except:
-            firstcommenter = "No commenters"
-        return singlethreadlink, firstcommenter		# Return the variables
-
-
-
-
-
     def scrape_internet(self):
         n = 8000
         # Z, N, lifetime value in log(sec) OR if stable == 20.0
@@ -170,26 +150,18 @@ class load_data():
         matrix_lifetimes = np.empty((n,3))
 
         index = 0
-        for massnumber in range(74,76):
+        for massnumber in range(6,76):
             url = "http://nucleardata.nuclear.lu.se/toi/listnuc.asp?sql=&Z=%d" % massnumber
-            #url = 'https://www.google.com/'
             thread = requests.get(url)
             cleanthread = str(bs4.BeautifulSoup(thread.text, 'html.parser'))
-            # First nuclei at line 51.
-            soup = cleanthread#.prettify()
+            soup = cleanthread
             soup = soup.split('<th><a href=')
             for i in range(1,len(soup)):
-                print(i, soup[i].split('\n'))#.children) #.split('\n'))
                 line = soup[i].split('\n')
                 if 'm' not in list(line[0])[30:34]: #Avoid isomers
-                    print(list(line[0])[30:34])
-                    #Z:
-                    #Z = int(list(line[1])[4] + list(line[1])[5])
-                    #Z = re.sub('<td>', '', line[1] )#line[1].strip('<td>', '</td>')
+
                     Z = int(re.sub('</td>', '', re.sub('<td>', '', line[1])))
-                    # N
                     N = int(re.sub('</td>', '', re.sub('<td>', '', line[2])))
-                    #N = int(list(line[2])[4] + list(line[2])[5])
                     print('    Z', Z, '    N', N)
 
                     lifetime = line[4].split('<i>')
@@ -197,8 +169,8 @@ class load_data():
                     lifetime = re.sub('<td>', '', lifetime)
                     lifetime = re.sub('&gt;', '', lifetime)
                     lifetime = re.sub('</td>', '', lifetime)
-                    print('LIFETIME CLEAN ?? ', lifetime)
                     lifetime_list = list(lifetime)
+
                     if 'stable' in lifetime:
                         matrix_lifetimes[index] = np.array([Z, N, stable])
                         index += 1
@@ -206,34 +178,16 @@ class load_data():
                         try:
                             unit = re.findall("[a-zA-Z]+", lifetime_list[-2] + lifetime_list[-1]) # Extract unit of lifetime. y/m/s/ms ...etc
                             lifetime_log = np.log(float(re.sub(unit[0], '', lifetime)) * self.units[unit[0]])
-                            
-                            print('Yoooo', lifetime, lifetime_log)
-
-                            print(lifetime, unit)
-                            print(self.units[unit[0]]) #Find corresponding log in seconds.
-                            print(lifetime)
+                            print('Lifetime: ', lifetime, 'Lifetime log(sec): ', lifetime_log)
                             matrix_lifetimes[index] = np.array([Z, N, lifetime_log])
                             index += 1
 
                         except:
                             print(lifetime, 'is not a valid or excisting lifetime/number')
-                    
-                    # After </A></TH> : Z, N
-                    # <TH ><A HREF=nuclide.asp?iZA=740158><SUP>158</SUP>W</A></TH>
-                    #Z = 34
-                    #N = 34
-                    #print(r.text)
 
-                    # Fill matrix
-
-                    
-        print(matrix_lifetimes[:50])            
+        print(matrix_lifetimes[:100]) 
+        np.save('matrix_lifetimes', matrix_lifetimes)    
         #df_lifetimes = pd.DataFrame(matrix_lifetimes, columns=['Z', 'N', 'lifetime'])
-
-
-
-
-
 
 
 if __name__ == "__main__":
