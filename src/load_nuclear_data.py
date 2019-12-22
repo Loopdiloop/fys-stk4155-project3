@@ -9,11 +9,16 @@ import sys
 
 import requests, bs4, re, time
 
+
+from sklearn import preprocessing
+
+
+
 class load_data():
     def __init__(self, dataset = "2016"):
         self.data_path = "../data/"
         self.result_path = "../results/"
-
+        self.lifetime_filename = 'lifetimes_list'
         self.units = {'ms' : 10e-6, 's' : 1., 'm' : 60., 'h' : 60*60., 'd' : 24*60*60., 'y' : 365.24*24*60*60.}
 
         """
@@ -120,12 +125,18 @@ class load_data():
 
         if strip_of_invalid_values:
             data['Ebinding'] = pd.to_numeric(data['Ebinding'], errors='coerce')
+            data['Atomic mass'] = pd.to_numeric(data['Atomic mass'], errors='coerce')
             data['S(n)'] = pd.to_numeric(data['S(2n)'], errors='coerce')
             data['S(2n)'] = pd.to_numeric(data['S(2n)'], errors='coerce')
+            data['S(p)'] = pd.to_numeric(data['S(p)'], errors='coerce')
             data['S(2p)'] = pd.to_numeric(data['S(2p)'], errors='coerce')
             data['Q(a)'] = pd.to_numeric(data['Q(a)'], errors='coerce')
-            #data['Q(2B-)'] = pd.to_numeric(data['Q(2B-)'], errors='coerce')
-            #data['Q(B-)'] = pd.to_numeric(data['Q(B-)'], errors='coerce')
+            data['Q(d,a)'] = pd.to_numeric(data['Q(d,a)'], errors='coerce')
+            data['Q(p,a)'] = pd.to_numeric(data['Q(p,a)'], errors='coerce')
+            data['Q(n,a)'] = pd.to_numeric(data['Q(n,a)'], errors='coerce')
+            data['Q(B-)'] = pd.to_numeric(data['Q(B-)'], errors='coerce')
+            data['EC'] = pd.to_numeric(data['EC'], errors='coerce')
+
         if drop_nan:    
             data = data.dropna()
         
@@ -134,61 +145,103 @@ class load_data():
         print("********************* Test for Re:  *******************************")
         print(data[data['Element'] == 'Re'])
 
-        print(" All: ")
-        print(data)
-        print(data.size)
+        #print(" All: ")
+        #print(data)
+        #print(data.size)
 
 
         self.data = data
         print("Data loaded succsessfully. Well done :)")
 
 
-    def scrape_internet(self):
-        n = 8000
+    def scrape_internet(self, add_lifetime_to_df = True):
+        n = 8000 # Arbitrary
+        protonrange = range(4,98)
         # Z, N, lifetime value in log(sec) OR if stable == 20.0
-        stable = 20.0
-        matrix_lifetimes = np.empty((n,3))
+        stable = 50.0
+        lifetimes_list = [] #np.empty((n,4))
 
         index = 0
-        for massnumber in range(6,76):
-            url = "http://nucleardata.nuclear.lu.se/toi/listnuc.asp?sql=&Z=%d" % massnumber
+        for protonnumber in protonrange:
+            url = "http://nucleardata.nuclear.lu.se/toi/listnuc.asp?sql=&Z=%d" % protonnumber
             thread = requests.get(url)
             cleanthread = str(bs4.BeautifulSoup(thread.text, 'html.parser'))
             soup = cleanthread
             soup = soup.split('<th><a href=')
             for i in range(1,len(soup)):
-                line = soup[i].split('\n')
+                line = soup[i].split('\n') # Split all lines with different information
                 if 'm' not in list(line[0])[30:34]: #Avoid isomers
 
                     Z = int(re.sub('</td>', '', re.sub('<td>', '', line[1])))
                     N = int(re.sub('</td>', '', re.sub('<td>', '', line[2])))
-                    print('    Z', Z, '    N', N)
 
-                    lifetime = line[4].split('<i>')
+                    lifetime = line[4].split('<i>') # Extract lifetime from uncertainty number at the end.
+                    # Remove a lot of html-markers
                     lifetime = re.sub('\xa0', '', lifetime[0])
                     lifetime = re.sub('<td>', '', lifetime)
                     lifetime = re.sub('&gt;', '', lifetime)
                     lifetime = re.sub('</td>', '', lifetime)
-                    lifetime_list = list(lifetime)
+                    
 
-                    if 'stable' in lifetime:
-                        matrix_lifetimes[index] = np.array([Z, N, stable])
-                        index += 1
+                    if 'stable' in lifetime: # If stable nuclei
+                        lifetimes_list.append([Z+N, Z, N, None])
+                        #lifetimes_list[index] = np.array([Z+N, Z, N, None])
+                        #index += 1
+                        print(Z, N, 'stable')#, stable)
                     else:
-                        try:
-                            unit = re.findall("[a-zA-Z]+", lifetime_list[-2] + lifetime_list[-1]) # Extract unit of lifetime. y/m/s/ms ...etc
-                            lifetime_log = np.log(float(re.sub(unit[0], '', lifetime)) * self.units[unit[0]])
-                            print('Lifetime: ', lifetime, 'Lifetime log(sec): ', lifetime_log)
-                            matrix_lifetimes[index] = np.array([Z, N, lifetime_log])
+                        try: # If a lifetime is given:
+                            # Extract unit of lifetime. y/m/s/ms ...etc
+                            lifetime_str_list = list(lifetime)
+                            unit = re.findall("[a-zA-Z]+", lifetime_str_list[-3] + lifetime_str_list[-2] + lifetime_str_list[-1]) 
+                            # Calculate the log10 of the (factor times the unit) to find lifetime in log10(sec)
+                            lifetime_log = np.log10(float(re.sub(unit[0], '', lifetime)) * self.units[unit[0]])
+                            print(' A: %3.f Z: %3.f N %3.f ' %(N+Z, Z, N), 'Lifetime: ', lifetime, 'Lifetime log(sec): ', lifetime_log)
+                            # Add result to matrix
+                            lifetimes_list.append([N+Z, Z, N, lifetime_log])
                             index += 1
 
-                        except:
-                            print(lifetime, 'is not a valid or excisting lifetime/number')
+                        except: # If no lifetime written down.
+                            print(' A: %3.f Z: %3.f N %3.f ' %(N+Z, Z, N), line[4], 'is not a valid or excisting lifetime/number')
 
-        print(matrix_lifetimes[:100]) 
-        np.save('matrix_lifetimes', matrix_lifetimes)    
-        #df_lifetimes = pd.DataFrame(matrix_lifetimes, columns=['Z', 'N', 'lifetime'])
+        lifetime_matrix = np.empty((len(lifetimes_list), 4))
+        lifetime_matrix[:] = lifetimes_list
+        np.save(self.lifetime_filename, lifetime_matrix)   
+        self.Lifetimes = lifetimes_list 
+        self.Lifetime_df = pd.DataFrame(lifetimes_list, columns=['A', 'Z', 'N', 'lifetime'])
+        print("Lifetimes scraped off the internet. ")
+        #print('df:',self.lifetime_df)
+        if add_lifetime_to_df:
+            self.data = pd.merge(self.data, self.Lifetime_df, on=["A", "Z", "N"])
+            print("Lifetimes merged into data.")
+        #df_lifetimes = pd.DataFrame(lifetimes_list, columns=['Z', 'N', 'lifetime'])
 
+    def load_lifetimes(self, add_lifetime_to_df = True):
+        if not os.path.exists(self.lifetime_filename+'.npy'):
+            print("Path/file ", self.lifetime_filename+'.npy', "does not exist. Please run load_data().scrape_internet() in file load_nuclear_data.py to generate file first.")
+            raise FileNotFoundError
+
+        lifetimes_matrix = np.load(self.lifetime_filename+'.npy')
+        self.Lifetime_df = pd.DataFrame(lifetimes_matrix, columns=['A', 'Z', 'N', 'lifetime'])
+        print("Lifetimes loaded from memory. ")
+        if add_lifetime_to_df:
+            self.data = pd.merge(self.data, self.Lifetime_df, on=["A", "Z", "N"])
+            print(self.data)
+            print("Lifetimes merged into data.")
+    
+    def drop_unused_columns(self):
+        self.data = self.data.drop(columns=['Q(2B-)', 'Q(4B-)', 'T9', 'rho'])
+
+    def normalise_dataset(self):
+        data = self.data
+        for column in self.data:
+            if column != 'Element':
+                data[column]=(data[column]-data[column].mean())/data[column].std()
+            '''x = self.data[column]
+            min_max_scaler = preprocessing.MinMaxScaler()
+            x_scaled = min_max_scaler.fit_transform(x)
+            self.data[column] = x_scaled'''
+        print(data)
+        self.data = data
 
 if __name__ == "__main__":
     run = load_data()
