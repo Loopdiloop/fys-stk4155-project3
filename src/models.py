@@ -20,39 +20,42 @@ class fit_models():
 
         mask = np.random.rand(len(df)) < training_fraction
         self.training = self.df[mask]
+        self.test = self.df[~mask]
+
 
         self.training_unstable= self.training.dropna()
         self.trainingX = self.training_unstable.drop(columns=['lifetime', 'Element', 'A'])
         self.trainingy = self.training_unstable['lifetime']
-        print(self.trainingX)
-
-        self.test = self.df[~mask]
-
-        self.test_stability = self.test#.drop(columns=['lifetime', 'Element', 'A'])
-        self.testX_st = self.test_stability.drop(columns=['lifetime', 'Element', 'A'])
-        self.testy_st = self.test_stability['lifetime'].fillna(0)
-        #pd.to_numeric(self.test_stability['lifetime'], errors=0)
-        self.testy_st[self.testy_st != 0] = 1
-        self.testy_st = self.testy_st.astype(int)
-        #df.a = df.a.astype(float)
-
-        #self.testy_st[type(self.testy_st[:]) == float] = 1
-        #self.testy_st = self.test_st.fillna()
-        print(self.testy_st)
-        sys.exit()
 
         self.test_unstable = self.test.dropna()
         self.testX = self.test_unstable.drop(columns=['lifetime', 'Element', 'A'])
         self.testy = self.test_unstable['lifetime']
 
+
+
+        # Binary testing data for stable/ not stable classification
+        self.training_stability = self.training
+        self.trainingX_st = self.training_stability.drop(columns=['lifetime', 'Element', 'A'])
+        self.trainingy_st = self.training_stability['lifetime'].fillna(0)
+        self.trainingy_st[self.trainingy_st != 0] = 1
+        self.trainingy_st = self.trainingy_st.astype(int)
+
+        self.test_stability = self.test
+        self.testX_st = self.test_stability.drop(columns=['lifetime', 'Element', 'A'])
+        self.testy_st = self.test_stability['lifetime'].fillna(0)
+        self.testy_st[self.testy_st != 0] = 1
+        self.testy_st = self.testy_st.astype(int)
+
+
+
     def fit_logistic_regression_sklearn(self, delta=0.01, iterations = 1000):
         """ Linear, logistic fit. Try to classify stable/non-stable nuclei."""
         
-        testX = self.testX_stability
-        testy = self.testy_stability
+        testX = self.testX_st
+        testy = self.testy_st
 
-        trainX = self.trainingX_
-        trainy = self.trainingy
+        trainX = self.trainingX_st
+        trainy = self.trainingy_st
         
         # n = no. of users, p = predictors, i.e. parameters.
         n,p = trainX.shape
@@ -68,12 +71,14 @@ class fit_models():
         skl_reg.fit(X,y)
 
         n,p = testX.shape
-        testX = np.ones((n,p+1))
-        testX[:,1:] = testX
-        testX[:,0] = 1
+        X_test = np.ones((n,p+1))
+        X_test[:,1:] = testX
+        X_test[:,0] = 1
 
-        score = skl_reg.score(testX, testy)
-        print("SKLEARN SCORE: ", score)
+
+
+        score = skl_reg.score(X_test, testy)
+        print("SKLEARN SCORE from logistic regression: ", score)
 
 
     def random_forest_sklearn(self):
@@ -93,3 +98,4 @@ class fit_models():
         plotting.plot_predictions_data(prediction, testy_array)
 
         print('Avg. abs. diff: ', np.mean(abs(testy_array-prediction)))
+        
