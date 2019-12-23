@@ -11,8 +11,6 @@ import sys
 """ Models for fitting the data... """
 
 
-
-
 class fit_models():
     def __init__(self, df, training_fraction = 0.8):
         
@@ -74,8 +72,6 @@ class fit_models():
         X_test = np.ones((n,p+1))
         X_test[:,1:] = testX
         X_test[:,0] = 1
-
-
 
         score = skl_reg.score(X_test, testy)
         print("SKLEARN SCORE from logistic regression: ", score)

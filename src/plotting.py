@@ -14,20 +14,17 @@ def plot_predictions_data(prediction, testy):
         plt.savefig('../results/figures/prediction_random_forest.png')
         plt.clf()
 
-
-
-"""
-plt.semilogy(df_lifetime['A'], np.exp(df_lifetime['lifetime']), '*')
-plt.xlabel('A')
-plt.ylabel('liftime [log(s)]')
-plt.show()
-plt.clf()"""
+def plot_A_lifetimes(df)
+    plt.plot(df['A'], df['lifetime'], '*')
+    plt.xlabel('A')
+    plt.ylabel('liftime [log(s)]')
+    plt.show()
+    plt.clf()
 
 
 def plot_for_Z(df, Z_value):
     # Print for all Z = Z_value nuclei
     df_one_Z = df[df['Z']==Z_value]
-
     plt.plot(df_one_Z['A'], df_one_Z['lifetime'], '*')
     plt.xlabel('A')
     plt.ylabel('liftime [log(s)]')

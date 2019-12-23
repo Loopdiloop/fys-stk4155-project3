@@ -6,10 +6,7 @@ import numpy as np
 import pandas as pd 
 import os 
 import sys
-
 import requests, bs4, re, time
-
-
 from sklearn import preprocessing
 
 
@@ -20,18 +17,6 @@ class load_data():
         self.result_path = "../results/"
         self.lifetime_filename = 'lifetimes_list'
         self.units = {'ms' : 10e-6, 's' : 1., 'm' : 60., 'h' : 60*60., 'd' : 24*60*60., 'y' : 365.24*24*60*60.}
-
-        """
-        if dataset == "2016":
-            self.infile = open("../input/masses_16.txt",'r')
-        elif dataset == "2012":
-            self.infile = open("../input/masses_12.txt",'r')
-        else: 
-            print("Error! Wrong input file, dataset = %s ?? Needs to be 2016 or 2012 or nothing." % dataset)"""
-
-        ok = True
-        print(" Is it ok? -", ok)
-
 
 
     def make_dir(self):
@@ -87,40 +72,22 @@ class load_data():
                 header=39,
                 index_col=False)
 
-
-        """data = pd.merge(Masses,
-                 Rct1[['S(2n)' 'S(2n)', 'S(2p)', 'Q(a)', 'Q(2B-)', 'Q(B-)']],
-                 on='use_id')"""
-
         
         if betarates:
             # File format:
             #A   Z   T9   log_10{rho(g/cm3) * Ye}   mu_e(electron chemical potential)  rates(beta+)  rate(EC) rates(nu) rates(beta-) rates(e+ capture)  rates(nubar)  tableID
-            
-            #infile_betarates = open("../input/data_too_big_for_github/for_each_nucl/20_9.txt",'r')
+
             infile_betarates = open("../input/data_too_big_for_github/single_rate_table.txt",'r')
-
-            '''Betarates = pd.read_fwf(infile_betarates, usecols=(0,1,2),#,3,5,6,8),
-                names=('A', 'Z', 'T9', 'rho', 'beta+', 'EC', 'beta-',  ),
-                widths=(4,4,10,10,10,10,10,10),
-                header=0,
-                index_col=False)'''
-
 
             Betarates = pd.read_fwf(infile_betarates, usecols=(0,1,2,3,6),
                 names=('A', 'Z', 'T9', 'rho', 'EC' ),
                 widths=(4,4,10,10,10,10,10,10),
                 header=0,
                 index_col=False)
-        #   6   3     0.100     5.000     0.052       ---  -100.000  -100.000       ---       ---       ---      0
-        #data = pd.concat([Masses, Rct1, Rct2], axis=1)
-        print(Betarates)
-        print(Betarates.loc[(Betarates['T9'] == 0.4) & (Betarates['rho']== 4.0)])
+
         data = pd.merge(Masses, Rct1, on=["A", "Z"])   #, Rct1)
         data = pd.merge(data, Rct2, on=["A", "Z"])
         data = pd.merge(data, Betarates.loc[(Betarates['T9'] == 0.4) & (Betarates['rho']== 4.0)], on=["A", "Z"])
-        #data = data.groupby('A')
-        #print(data)
 
 
         if strip_of_invalid_values:
@@ -140,16 +107,6 @@ class load_data():
         if drop_nan:    
             data = data.dropna()
         
-
-
-        print("********************* Test for Re:  *******************************")
-        print(data[data['Element'] == 'Re'])
-
-        #print(" All: ")
-        #print(data)
-        #print(data.size)
-
-
         self.data = data
         print("Data loaded succsessfully. Well done :)")
 
@@ -157,9 +114,7 @@ class load_data():
     def scrape_internet(self, add_lifetime_to_df = True):
         n = 8000 # Arbitrary
         protonrange = range(4,98)
-        # Z, N, lifetime value in log(sec) OR if stable == 20.0
-        stable = 50.0
-        lifetimes_list = [] #np.empty((n,4))
+        lifetimes_list = [] 
 
         index = 0
         for protonnumber in protonrange:
@@ -185,9 +140,8 @@ class load_data():
 
                     if 'stable' in lifetime: # If stable nuclei
                         lifetimes_list.append([Z+N, Z, N, None])
-                        #lifetimes_list[index] = np.array([Z+N, Z, N, None])
-                        #index += 1
-                        print(Z, N, 'stable')#, stable)
+                        print(Z, N, 'stable')
+
                     else:
                         try: # If a lifetime is given:
                             # Extract unit of lifetime. y/m/s/ms ...etc
@@ -209,11 +163,9 @@ class load_data():
         self.Lifetimes = lifetimes_list 
         self.Lifetime_df = pd.DataFrame(lifetimes_list, columns=['A', 'Z', 'N', 'lifetime'])
         print("Lifetimes scraped off the internet. ")
-        #print('df:',self.lifetime_df)
         if add_lifetime_to_df:
             self.data = pd.merge(self.data, self.Lifetime_df, on=["A", "Z", "N"])
             print("Lifetimes merged into data.")
-        #df_lifetimes = pd.DataFrame(lifetimes_list, columns=['Z', 'N', 'lifetime'])
 
     def load_lifetimes(self, add_lifetime_to_df = True):
         if not os.path.exists(self.lifetime_filename+'.npy'):
@@ -225,7 +177,6 @@ class load_data():
         print("Lifetimes loaded from memory. ")
         if add_lifetime_to_df:
             self.data = pd.merge(self.data, self.Lifetime_df, on=["A", "Z", "N"])
-            print(self.data)
             print("Lifetimes merged into data.")
     
     def drop_unused_columns(self):
@@ -236,11 +187,7 @@ class load_data():
         for column in self.data:
             if column != 'Element':
                 data[column]=(data[column]-data[column].mean())/data[column].std()
-            '''x = self.data[column]
-            min_max_scaler = preprocessing.MinMaxScaler()
-            x_scaled = min_max_scaler.fit_transform(x)
-            self.data[column] = x_scaled'''
-        print(data)
+
         self.data = data
 
 if __name__ == "__main__":
