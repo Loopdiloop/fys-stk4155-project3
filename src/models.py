@@ -28,7 +28,7 @@ class fit_models():
         self.test_unstable = self.test.dropna()
         self.testX = self.test_unstable.drop(columns=['lifetime', 'Element', 'A'])
         self.testy = self.test_unstable['lifetime']
-
+        self.testy_np = self.testy.to_numpy()
 
 
         # Binary testing data for stable/ not stable classification
@@ -43,8 +43,7 @@ class fit_models():
         self.testy_st = self.test_stability['lifetime'].fillna(0)
         self.testy_st[self.testy_st != 0] = 1
         self.testy_st = self.testy_st.astype(int)
-
-
+        self.testy_st_np = self.testy_st.to_numpy()
 
     def fit_logistic_regression_sklearn(self, delta=0.01, iterations = 1000):
         """ Linear, logistic fit. Try to classify stable/non-stable nuclei."""
@@ -57,7 +56,6 @@ class fit_models():
         
         # n = no. of users, p = predictors, i.e. parameters.
         n,p = trainX.shape
-        print(trainX.shape)
 
         X = np.ones((n,p+1))
         X[:,1:] = trainX
@@ -73,9 +71,8 @@ class fit_models():
         X_test[:,1:] = testX
         X_test[:,0] = 1
 
-        score = skl_reg.score(X_test, testy)
-        print("SKLEARN SCORE from logistic regression: ", score)
-
+        self.logistic_prediction = skl_reg.score(X_test, testy)
+        
 
     def random_forest_sklearn(self):
 
@@ -88,10 +85,9 @@ class fit_models():
         regressor = RandomForestRegressor(n_estimators = 300, random_state = 2)
         regressor.fit(X, y)
 
-        prediction = regressor.predict(testX)
-        testy_array = testy.to_numpy()
-
-        plotting.plot_predictions_data(prediction, testy_array)
-
-        print('Avg. abs. diff: ', np.mean(abs(testy_array-prediction)))
+        self.forest_prediction = regressor.predict(testX)
         
+        
+        testy_array = testy.to_numpy()
+        #plotting.plot_predictions_data(self.forest_prediction, testy_array)
+

@@ -3,18 +3,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def plot_predictions_data(prediction, testy):
-        xx = np.linspace(0,1,len(prediction))
-        #testX['Z'].to_numpy()
-        plt.plot(xx, testy, '*', label='actual value')
-        plt.plot(xx, prediction,  '*', label='prediction')
-        plt.plot(xx, abs(testy-prediction), '*', label='abs difference')
-        plt.legend()
-        plt.title('Predictions made by random forest from sklearn.')
-        plt.show()
-        plt.savefig('../results/figures/prediction_random_forest.png')
-        plt.clf()
+    xx = np.linspace(0,1,len(prediction))
+    #testX['Z'].to_numpy()
+    plt.plot(xx, testy, '*', label='actual value')
+    plt.plot(xx, prediction,  '*', label='prediction')
+    plt.plot(xx, abs(testy-prediction), '*', label='abs difference')
+    plt.legend()
+    plt.title('Predictions made by random forest from sklearn.')
+    plt.show()
+    plt.savefig('../results/figures/prediction_random_forest.png')
+    plt.clf()
 
-def plot_A_lifetimes(df)
+def plot_A_lifetimes(df):
     plt.plot(df['A'], df['lifetime'], '*')
     plt.xlabel('A')
     plt.ylabel('liftime [log(s)]')
