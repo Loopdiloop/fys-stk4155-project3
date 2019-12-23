@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import LogisticRegression
+import plotting
+import sys
 
 """ Models for fitting the data... """
 
@@ -17,38 +20,59 @@ class fit_models():
 
         mask = np.random.rand(len(df)) < training_fraction
         self.training = self.df[mask]
-        self.training= self.training.dropna()
-        self.trainingX = self.training.drop(columns=['lifetime', 'Element', 'A'])
-        self.trainingy = self.training['lifetime']
+
+        self.training_unstable= self.training.dropna()
+        self.trainingX = self.training_unstable.drop(columns=['lifetime', 'Element', 'A'])
+        self.trainingy = self.training_unstable['lifetime']
         print(self.trainingX)
 
         self.test = self.df[~mask]
-        self.test = self.test.dropna()
-        self.testX = self.test.drop(columns=['lifetime', 'Element', 'A'])
-        self.testy = self.test['lifetime']
+
+        self.test_stability = self.test#.drop(columns=['lifetime', 'Element', 'A'])
+        self.testX_st = self.test_stability.drop(columns=['lifetime', 'Element', 'A'])
+        self.testy_st = self.test_stability['lifetime'].fillna(0)
+        #pd.to_numeric(self.test_stability['lifetime'], errors=0)
+        self.testy_st[self.testy_st != 0] = 1
+        self.testy_st = self.testy_st.astype(int)
+        #df.a = df.a.astype(float)
+
+        #self.testy_st[type(self.testy_st[:]) == float] = 1
+        #self.testy_st = self.test_st.fillna()
+        print(self.testy_st)
+        sys.exit()
+
+        self.test_unstable = self.test.dropna()
+        self.testX = self.test_unstable.drop(columns=['lifetime', 'Element', 'A'])
+        self.testy = self.test_unstable['lifetime']
 
     def fit_logistic_regression_sklearn(self, delta=0.01, iterations = 1000):
-        """ Do a linear, logistic fit for matrix X with sigmoid function, from sklearn"""
+        """ Linear, logistic fit. Try to classify stable/non-stable nuclei."""
+        
+        testX = self.testX_stability
+        testy = self.testy_stability
+
+        trainX = self.trainingX_
+        trainy = self.trainingy
         
         # n = no. of users, p = predictors, i.e. parameters.
-        n,p = np.shape(self.inst.XTrain)
+        n,p = trainX.shape
+        print(trainX.shape)
 
         X = np.ones((n,p+1))
-        X[:,1:] = self.inst.XTrain
+        X[:,1:] = trainX
         X[:,0] = 1
 
-        y = self.inst.yTrain
+        y = trainy
 
         skl_reg = LogisticRegression(solver='lbfgs') #solver="lbfgs")
         skl_reg.fit(X,y)
 
-        n,p = np.shape(self.inst.XTest)
-        X_test = np.ones((n,p+1))
-        X_test[:,1:] = self.inst.XTest
-        y_test = self.inst.yTest
-        X_test[:,0] = 1
+        n,p = testX.shape
+        testX = np.ones((n,p+1))
+        testX[:,1:] = testX
+        testX[:,0] = 1
 
-        score = skl_reg.score(X_test, self.inst.yTest)
+        score = skl_reg.score(testX, testy)
         print("SKLEARN SCORE: ", score)
 
 
@@ -60,28 +84,12 @@ class fit_models():
         X = self.trainingX
         y = self.trainingy
         
-        #classifier = MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(5, 2), random_state=1)
         regressor = RandomForestRegressor(n_estimators = 300, random_state = 2)
         regressor.fit(X, y)
-        #MLPClassifier(alpha=1e-05, hidden_layer_sizes=(5, 2, random_state=1, solver='lbfgs')
 
-        #testX = test.loc[:, test.columns !=  ['lifetime', 'Element', 'A']]
-        #testY = np.array(test['lifetime'])
-        
         prediction = regressor.predict(testX)
         testy_array = testy.to_numpy()
-        print('TESTING RESULTS! ')
 
-        xx = np.linspace(0,1,len(prediction))
-        #testX['Z'].to_numpy()
-        plt.plot(xx, testy_array, '*', label='actual value')
-        plt.plot(xx, prediction,  '*', label='prediction')
-        plt.plot(xx, abs(testy_array-prediction), '*', label='abs difference')
-        plt.legend()
-        plt.show()
+        plotting.plot_predictions_data(prediction, testy_array)
 
         print('Avg. abs. diff: ', np.mean(abs(testy_array-prediction)))
-        #for i in range(len(prediction)):
-        #    print(testy[i],prediction[i])
-
-

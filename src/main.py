@@ -42,6 +42,7 @@ nuclear_data.normalise_dataset()
 
 model = fit_models(df = nuclear_data.data, training_fraction = 0.7)
 model.random_forest_sklearn()
+model.fit_logistic_regression_sklearn()
 
 
 
@@ -68,7 +69,7 @@ print(df_one_Z)
 plt.plot(df_one_Z['A'], df_one_Z['lifetime'], '*')
 plt.xlabel('A')
 plt.ylabel('liftime [log(s)]')
-plt.show()'''
+plt.show()
 
 # Lifetimes for Z/N ?? Z/(A-Z)
 Z_N = df_lifetime['N']/(df_lifetime['Z'])
@@ -80,7 +81,7 @@ plt.ylabel('liftime [log(s)]')
 plt.show()
 plt.clf()
 
-'''
+
 # Plot N vs. Z of stable nuclei (should be no surprise...)
 stable_nuclei = df_lifetime[df_lifetime['lifetime'] == None]
 plt.plot(stable_nuclei['N'], stable_nuclei['Z'], '*')
